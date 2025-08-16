@@ -1,0 +1,7 @@
+{
+  "output_file": "mouser_products.json",
+  "proxies_file": "proxies.txt",
+  "threads": 4,
+  "timeout": 10,
+  "retries": 3
+}
