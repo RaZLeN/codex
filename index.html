@@ -1,42 +1,428 @@
 <!DOCTYPE html>
 <html lang="ru">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Sky Orchard</title>
-    <meta name="theme-color" content="#10131a" />
-    <link rel="preconnect" href="https://telegram.org" />
-    <link rel="stylesheet" href="styles.css" />
-    <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
-    <script src="game.js" type="module" defer></script>
-  </head>
-  <body>
-    <noscript>
-      Для запуска Sky Orchard требуется JavaScript. Пожалуйста, включите его в настройках браузера.
-    </noscript>
-    <div id="app" class="app">
-      <header class="hud" aria-live="polite">
-        <div class="hud__item">
-          <span class="hud__label">Очки</span>
-          <span id="score" class="hud__value">0</span>
-        </div>
-        <div class="hud__item">
-          <span class="hud__label">Время</span>
-          <span id="timer" class="hud__value">60</span>
-        </div>
-      </header>
-      <main id="game-area" class="game" role="application" aria-label="Игровое поле">
-        <div id="touch-hint" class="touch-hint" aria-hidden="true">
-          Коснитесь появляющихся сфер, чтобы собрать энергию.
-        </div>
-      </main>
-      <section id="overlay" class="overlay" hidden>
-        <div class="overlay__content" role="alertdialog" aria-modal="true">
-          <h1 class="overlay__title">Раунд завершён</h1>
-          <p id="final-score" class="overlay__score"></p>
-          <button id="restart" class="button">Играть снова</button>
-        </div>
-      </section>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Memory Melody — игра на память</title>
+<style>
+  :root{
+    --bg1:#0e0f1a; --bg2:#14172b;
+    --panel:#141826cc; --panel-br:#2c3250;
+    --text:#e9ecf8; --muted:#a3acc7;
+    --good:#10b981; --bad:#ef4444;
+    --pad1:#7dd3fc; /* голубой */
+    --pad2:#fca5a5; /* коралл */
+    --pad3:#fde68a; /* янтарь */
+    --pad4:#86efac; /* лайм */
+    --glow1:rgba(125,211,252,.75);
+    --glow2:rgba(252,165,165,.75);
+    --glow3:rgba(253,230,138,.75);
+    --glow4:rgba(134,239,172,.75);
+    --accent:#6366f1;
+    --shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font:16px/1.5 Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(1200px 600px at 15% -10%, #1f2455 0%, transparent 60%),
+      radial-gradient(1200px 600px at 85% 110%, #1a5447 0%, transparent 55%),
+      linear-gradient(180deg, var(--bg1), var(--bg2));
+  }
+  .container{
+    min-height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:24px; gap:16px;
+  }
+  .panel{
+    width:min(900px, 96vw); border-radius:20px; padding:18px; background:var(--panel);
+    border:1px solid var(--panel-br); box-shadow:var(--shadow); backdrop-filter: blur(8px);
+  }
+  header{
+    display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:10px;
+  }
+  .title{font-weight:800; letter-spacing:.3px}
+  .kpis{display:flex; gap:10px; flex-wrap:wrap}
+  .chip{
+    background:#0f1325; border:1px solid #2b3150; color:var(--muted);
+    padding:8px 12px; border-radius:12px;
+  }
+  .chip b{color:var(--text)}
+  .grid{
+    display:grid; grid-template-columns:repeat(2, 1fr); grid-template-rows:repeat(2, 1fr);
+    gap:18px; width:100%; aspect-ratio:1/1; padding:12px;
+  }
+  .pad{
+    position:relative; border-radius:20px; cursor:pointer; user-select:none;
+    box-shadow: inset 0 -8px 20px rgba(0,0,0,.35), inset 0 2px 8px rgba(255,255,255,.06), var(--shadow);
+    transform:translateZ(0); transition:transform .06s ease, filter .2s ease, box-shadow .2s ease;
+    outline:none; border:1px solid rgba(255,255,255,.07);
+  }
+  .pad:active{transform:scale(.99)}
+  .pad:hover{filter:brightness(1.03)}
+  .pad .shine{
+    position:absolute; inset:0; border-radius:inherit;
+    background: radial-gradient(400px 240px at 70% 15%, rgba(255,255,255,.22), rgba(255,255,255,0) 55%);
+    pointer-events:none;
+  }
+  .pad[data-i="0"]{background:linear-gradient(180deg,#2b9dd6,#1171b7)}
+  .pad[data-i="1"]{background:linear-gradient(180deg,#e76a6a,#c63b3b)}
+  .pad[data-i="2"]{background:linear-gradient(180deg,#e9c15a,#caa22d)}
+  .pad[data-i="3"]{background:linear-gradient(180deg,#34c784,#10995a)}
+  .pad.active[data-i="0"]{box-shadow:0 0 24px 8px var(--glow1), var(--shadow)}
+  .pad.active[data-i="1"]{box-shadow:0 0 24px 8px var(--glow2), var(--shadow)}
+  .pad.active[data-i="2"]{box-shadow:0 0 24px 8px var(--glow3), var(--shadow)}
+  .pad.active[data-i="3"]{box-shadow:0 0 24px 8px var(--glow4), var(--shadow)}
+  .controls{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:14px}
+  .btn{
+    appearance:none; border:none; background:var(--accent); color:white; font-weight:700;
+    padding:12px 16px; border-radius:12px; cursor:pointer; box-shadow:var(--shadow); letter-spacing:.2px;
+  }
+  .btn:active{transform:translateY(1px)}
+  .range{display:flex; align-items:center; gap:8px; color:var(--muted)}
+  input[type="range"]{accent-color:var(--accent)}
+  .sep{flex:1}
+  .status{color:var(--muted)}
+  .leaderboard{
+    margin-top:14px; background:#0d1226; border:1px solid #2b3150; border-radius:14px; overflow:hidden
+  }
+  .leaderboard header{
+    padding:10px 12px; border-bottom:1px solid #2b3150; color:var(--muted);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  table{width:100%; border-collapse:collapse; font-size:14px}
+  th,td{padding:10px 12px; text-align:left; border-bottom:1px solid #242a44}
+  th{color:#c3c9e8; font-weight:600}
+  .center{text-align:center}
+  /* Ошибка — лёгкая тряска панели */
+  .shake{animation:shake .28s linear 1}
+  @keyframes shake{
+    0%{transform:translateX(0)} 25%{transform:translateX(-6px)} 50%{transform:translateX(6px)}
+    75%{transform:translateX(-3px)} 100%{transform:translateX(0)}
+  }
+  /* Модалка */
+  .modal{
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.55); backdrop-filter: blur(4px); z-index:20; padding:20px;
+  }
+  .modal.open{display:flex}
+  .card{
+    width:min(460px, 94vw); background:var(--panel); border:1px solid var(--panel-br);
+    border-radius:16px; padding:16px; box-shadow:var(--shadow)
+  }
+  .card h3{margin:6px 0 8px 0}
+  .input{
+    width:100%; padding:10px 12px; border-radius:10px; border:1px solid #2b3150; background:#0f1325; color:var(--text)
+  }
+  .note-map{font-size:13px; color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="panel" id="gamePanel">
+    <header>
+      <div class="title">🎵 Memory Melody — игра на память</div>
+      <div class="kpis">
+        <div class="chip">Раунд: <b id="round">0</b></div>
+        <div class="chip">Очки: <b id="score">0</b></div>
+        <div class="chip">Рекорд: <b id="best">0</b></div>
+      </div>
+    </header>
+
+    <div class="grid" id="grid" aria-label="Игровые кнопки">
+      <button class="pad" data-i="0" aria-label="Голубой — D5"><div class="shine"></div></button>
+      <button class="pad" data-i="1" aria-label="Коралл — E5"><div class="shine"></div></button>
+      <button class="pad" data-i="2" aria-label="Янтарь — G5"><div class="shine"></div></button>
+      <button class="pad" data-i="3" aria-label="Лайм — A5"><div class="shine"></div></button>
     </div>
-  </body>
+
+    <div class="controls">
+      <button class="btn" id="startBtn">Начать игру</button>
+      <div class="range">
+        Громкость
+        <input id="vol" type="range" min="0" max="100" value="70">
+      </div>
+      <div class="range">
+        Скорость показа
+        <input id="speed" type="range" min="0" max="100" value="40" title="Выше — быстрее">
+      </div>
+      <div class="sep"></div>
+      <div class="status" id="status">Нажмите «Начать игру»</div>
+    </div>
+
+    <div class="leaderboard" id="lb">
+      <header><div>Таблица рекордов (локально)</div><div class="note-map">Ноты: D5, E5, G5, A5</div></header>
+      <table id="lbTable" aria-label="Локальная таблица рекордов">
+        <thead><tr><th>#</th><th>Имя</th><th>Очки</th><th>Дата</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно сохранения рекорда -->
+<div class="modal" id="modal">
+  <div class="card">
+    <h3>Отличный результат!</h3>
+    <p>Вы прошли <b id="finalScore">0</b> шагов. Введите имя, чтобы добавить запись в таблицу рекордов:</p>
+    <div style="display:flex; gap:10px; align-items:center; margin-top:8px">
+      <input class="input" id="nameInput" maxlength="24" placeholder="Ваше имя">
+      <button class="btn" id="saveBtn">Сохранить</button>
+    </div>
+    <p class="note-map" style="margin-top:10px">Порог попадания: > 7 шагов за попытку.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  // --------- Настройки звука и карт геймплея ---------
+  // Ноты (частоты в Гц, равномерно-темперированный строй, A4=440):
+  // D5=587.33, E5=659.26, G5=783.99, A5=880.00
+  const NOTE_FREQ = [587.33, 659.26, 783.99, 880.00];
+  const COLORS = ['#7dd3fc', '#fca5a5', '#fde68a', '#86efac'];
+  const pads = Array.from(document.querySelectorAll('.pad'));
+  const startBtn = document.getElementById('startBtn');
+  const statusEl = document.getElementById('status');
+  const roundEl  = document.getElementById('round');
+  const scoreEl  = document.getElementById('score');
+  const bestEl   = document.getElementById('best');
+  const volEl    = document.getElementById('vol');
+  const speedEl  = document.getElementById('speed');
+  const panelEl  = document.getElementById('gamePanel');
+  const modal    = document.getElementById('modal');
+  const finalScoreEl = document.getElementById('finalScore');
+  const nameInput= document.getElementById('nameInput');
+  const saveBtn  = document.getElementById('saveBtn');
+  const lbTable  = document.querySelector('#lbTable tbody');
+
+  // Локальное хранилище рекордов
+  const LB_KEY = 'memory_melody_lb_v1';
+  let leaderboard = loadLB();
+  renderLB();
+
+  // Вспомогательные переменные игры
+  let sequence = [];            // массив индексов 0..3
+  let stepIndex = 0;            // сколько шагов игрок уже ввёл на текущем раунде
+  let playingBack = false;      // идёт показ последовательности
+  let running = false;          // активная партия
+  let score = 0, best = +localStorage.getItem('memory_melody_best') || 0;
+  bestEl.textContent = String(best);
+
+  // --------- Web Audio API ---------
+  let audioCtx = null;
+  let masterGain = null;
+
+  function initAudio(){
+    if(audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = volEl.value/100;  // громкость 0..1
+    masterGain.connect(audioCtx.destination);
+  }
+
+  async function ensureAudioUnlocked(){
+    initAudio();
+    if(audioCtx.state === 'suspended'){
+      try{ await audioCtx.resume(); }catch(e){}
+    }
+  }
+
+  function playTone(freq, dur=0.35){
+    if(!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain= audioCtx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+
+    // Мягкая огибающая, чтобы не щёлкало
+    const now = audioCtx.currentTime;
+    const g = gain.gain;
+    g.setValueAtTime(0.0001, now);
+    g.exponentialRampToValueAtTime(1.0, now + 0.01);
+    g.exponentialRampToValueAtTime(0.0001, now + dur);
+
+    osc.connect(gain); gain.connect(masterGain);
+    osc.start(now);
+    osc.stop(now + dur + 0.02);
+  }
+
+  // --------- Игровая логика ---------
+  function setStatus(msg){ statusEl.textContent = msg }
+
+  function randInt(max){ return Math.floor(Math.random()*max) }
+
+  function resetGame(){
+    sequence = [];
+    stepIndex = 0;
+    score = 0;
+    roundEl.textContent = '0';
+    scoreEl.textContent = '0';
+  }
+
+  async function startGame(){
+    await ensureAudioUnlocked();
+    running = true; playingBack = false;
+    resetGame();
+    setStatus('Повторяйте последовательность…');
+    nextRound();
+  }
+
+  function nextRound(){
+    // Добавляем один случайный шар (повторы допускаются)
+    sequence.push(randInt(4));
+    stepIndex = 0;
+    roundEl.textContent = String(sequence.length);
+    playSequence();
+  }
+
+  async function playSequence(){
+    playingBack = true;
+    // Скорость от ползунка: быстрее — короче шаг
+    const speed = +speedEl.value; // 0..100
+    const stepOn  = Math.max(160, 520 - speed*3.6); // мс свечения
+    const stepGap = Math.max(120, 360 - speed*2.4); // пауза между шагами
+
+    // Блокируем фокус на время проигрыша
+    for(const p of pads) p.disabled = true;
+
+    for(let i=0;i<sequence.length;i++){
+      const idx = sequence[i];
+      await flashPad(idx, stepOn);
+      await sleep(stepGap);
+    }
+
+    for(const p of pads) p.disabled = false;
+    playingBack = false;
+  }
+
+  async function flashPad(idx, duration=350){
+    const pad = pads[idx];
+    pad.classList.add('active');
+    playTone(NOTE_FREQ[idx], duration/1000);
+    // маленькая вибра на мобильных
+    if(navigator.vibrate) try{ navigator.vibrate(10) }catch{}
+    await sleep(duration);
+    pad.classList.remove('active');
+  }
+
+  function sleep(ms){ return new Promise(r=>setTimeout(r, ms)) }
+
+  async function handlePadInput(idx){
+    if(!running || playingBack) return;
+    await flashPad(idx, 220); // короткое подтверждение для игрока
+    if(sequence[stepIndex] === idx){
+      stepIndex++;
+      if(stepIndex === sequence.length){
+        // Раунд пройден
+        score = sequence.length;
+        scoreEl.textContent = String(score);
+        if(score > best){ best = score; bestEl.textContent = String(best); localStorage.setItem('memory_melody_best', String(best)) }
+        await sleep(400);
+        nextRound();
+      }
+    }else{
+      // Ошибка — конец игры
+      running = false;
+      panelEl.classList.add('shake');
+      setTimeout(()=>panelEl.classList.remove('shake'), 320);
+      setStatus('Ошибка. Нажмите «Начать игру», чтобы сыграть снова.');
+      if(score > 7){
+        // Предложить запись в таблицу рекордов
+        finalScoreEl.textContent = String(score);
+        nameInput.value = suggestName();
+        modal.classList.add('open');
+        nameInput.focus();
+      }
+    }
+  }
+
+  function suggestName(){
+    const prev = localStorage.getItem('memory_melody_name');
+    if(prev) return prev;
+    // скромный автоподбор
+    const base = ['Игрок','Музыкант','Maestro','Virtuoso','Hero'];
+    return base[randInt(base.length)] + '-' + (100+randInt(900));
+  }
+
+  // --------- Таблица рекордов (локально) ---------
+  function loadLB(){
+    try{
+      const raw = localStorage.getItem(LB_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    }catch{ return [] }
+  }
+
+  function saveLB(){
+    try{ localStorage.setItem(LB_KEY, JSON.stringify(leaderboard)) }catch{}
+  }
+
+  function addRecord(name, score){
+    leaderboard.push({ name, score, date: new Date().toISOString() });
+    leaderboard.sort((a,b)=> b.score - a.score || (a.date < b.date ? 1 : -1));
+    leaderboard = leaderboard.slice(0, 15); // топ-15
+    saveLB();
+    renderLB();
+  }
+
+  function renderLB(){
+    lbTable.innerHTML = '';
+    if(leaderboard.length === 0){
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 4; td.className = 'center'; td.textContent = 'Пока нет записей';
+      tr.appendChild(td); lbTable.appendChild(tr); return;
+    }
+    leaderboard.forEach((r, i)=>{
+      const tr = document.createElement('tr');
+      const dt = new Date(r.date);
+      tr.innerHTML = `<td>${i+1}</td><td>${escapeHtml(r.name)}</td><td>${r.score}</td><td>${dt.toLocaleDateString()} ${dt.toLocaleTimeString()}</td>`;
+      lbTable.appendChild(tr);
+    });
+  }
+
+  function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])) }
+
+  // --------- События UI ---------
+  startBtn.addEventListener('click', startGame);
+
+  // Поддержка мышь/тач/стилус единообразно (pointerdown)
+  pads.forEach(p=>{
+    p.addEventListener('pointerdown', (e)=>{
+      e.preventDefault();
+      const idx = +p.getAttribute('data-i');
+      handlePadInput(idx);
+    }, { passive:false });
+  });
+
+  volEl.addEventListener('input', ()=>{
+    if(!masterGain) initAudio();
+    if(masterGain) masterGain.gain.value = volEl.value/100;
+  });
+
+  saveBtn.addEventListener('click', ()=>{
+    const name = nameInput.value.trim() || 'Игрок';
+    localStorage.setItem('memory_melody_name', name);
+    addRecord(name, score);
+    modal.classList.remove('open');
+  });
+
+  modal.addEventListener('click', (e)=>{
+    if(e.target === modal) modal.classList.remove('open');
+  });
+
+  // Горячая клавиатура (1,2,3,4)
+  window.addEventListener('keydown', (e)=>{
+    const map = { '1':0, '2':1, '3':2, '4':3 };
+    if(e.key in map){ handlePadInput(map[e.key]) }
+    if(e.key === 'Enter' && !running){ startGame() }
+  });
+
+  setStatus('Нажмите «Начать игру»');
+
+})();
+</script>
+</body>
 </html>
