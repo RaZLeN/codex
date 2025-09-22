@@ -1,0 +1,197 @@
+:root {
+  color-scheme: light dark;
+  --bg-color: #10131a;
+  --bg-color-secondary: rgba(255, 255, 255, 0.08);
+  --text-color: #f7f9fb;
+  --accent-color: #6dc8ff;
+  --danger-color: #ff6e6e;
+  --success-color: #5df5c9;
+  --shadow-color: rgba(0, 0, 0, 0.4);
+  --font-primary: 'Nunito', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --transition: 180ms ease;
+}
+
+* {
+  box-sizing: border-box;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-primary);
+  background: radial-gradient(circle at top, rgba(86, 120, 255, 0.25), transparent 60%), var(--bg-color);
+  color: var(--text-color);
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.app {
+  width: min(100vw, 480px);
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  position: relative;
+  overflow: hidden;
+}
+
+.hud {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem 0.5rem;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.45), transparent);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.hud__label {
+  display: block;
+  font-size: 0.65rem;
+  opacity: 0.75;
+}
+
+.hud__value {
+  font-size: 1.5rem;
+}
+
+.game {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px 24px 0 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.35)),
+    radial-gradient(circle at 20% 20%, rgba(128, 240, 255, 0.28), transparent 60%),
+    radial-gradient(circle at 80% 10%, rgba(255, 174, 255, 0.18), transparent 60%),
+    rgba(12, 16, 30, 0.92);
+}
+
+.touch-hint {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition);
+}
+
+.touch-hint.visible {
+  opacity: 0.9;
+}
+
+.orb {
+  position: absolute;
+  width: clamp(56px, 14vw, 90px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.85), rgba(109, 200, 255, 0.6) 40%, rgba(35, 60, 120, 0.55));
+  box-shadow: 0 12px 24px -8px var(--shadow-color);
+  transform: scale(0);
+  animation: pop-in 180ms ease forwards, float 2.6s ease-in-out infinite alternate;
+  display: grid;
+  place-items: center;
+  color: rgba(0, 0, 0, 0.85);
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+
+.orb[data-type='rare'] {
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(93, 245, 201, 0.65) 45%, rgba(0, 90, 60, 0.55));
+}
+
+.orb[data-type='bonus'] {
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.95), rgba(255, 132, 202, 0.7) 50%, rgba(120, 0, 60, 0.55));
+}
+
+@keyframes pop-in {
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes float {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-12px);
+  }
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(12px) brightness(0.85);
+  background: rgba(8, 12, 24, 0.72);
+  padding: 1.5rem;
+}
+
+.overlay__content {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 1.75rem;
+  box-shadow: 0 20px 50px -16px rgba(0, 0, 0, 0.6);
+  text-align: center;
+  max-width: 280px;
+}
+
+.overlay__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.75rem;
+}
+
+.overlay__score {
+  margin: 0 0 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.button {
+  width: 100%;
+  border: none;
+  border-radius: 999px;
+  padding: 0.9rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--bg-color);
+  background: linear-gradient(135deg, var(--accent-color), rgba(140, 95, 255, 0.95));
+  cursor: pointer;
+  transition: transform var(--transition), filter var(--transition);
+}
+
+.button:active {
+  transform: scale(0.96);
+  filter: brightness(0.95);
+}
+
+@media (max-width: 480px) {
+  .hud {
+    padding: 0.75rem 1rem 0.25rem;
+  }
+  .hud__value {
+    font-size: 1.2rem;
+  }
+  .touch-hint {
+    font-size: 0.95rem;
+  }
+}
+
+.orb.collected {
+  animation: none;
+  transform: scale(0.4);
+  opacity: 0;
+  transition: transform var(--transition), opacity var(--transition);
+}
+
+body.reduced-motion .orb {
+  animation: none;
+}

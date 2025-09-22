@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Sky Orchard</title>
+    <meta name="theme-color" content="#10131a" />
+    <link rel="preconnect" href="https://telegram.org" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+    <script src="game.js" type="module" defer></script>
+  </head>
+  <body>
+    <noscript>
+      Для запуска Sky Orchard требуется JavaScript. Пожалуйста, включите его в настройках браузера.
+    </noscript>
+    <div id="app" class="app">
+      <header class="hud" aria-live="polite">
+        <div class="hud__item">
+          <span class="hud__label">Очки</span>
+          <span id="score" class="hud__value">0</span>
+        </div>
+        <div class="hud__item">
+          <span class="hud__label">Время</span>
+          <span id="timer" class="hud__value">60</span>
+        </div>
+      </header>
+      <main id="game-area" class="game" role="application" aria-label="Игровое поле">
+        <div id="touch-hint" class="touch-hint" aria-hidden="true">
+          Коснитесь появляющихся сфер, чтобы собрать энергию.
+        </div>
+      </main>
+      <section id="overlay" class="overlay" hidden>
+        <div class="overlay__content" role="alertdialog" aria-modal="true">
+          <h1 class="overlay__title">Раунд завершён</h1>
+          <p id="final-score" class="overlay__score"></p>
+          <button id="restart" class="button">Играть снова</button>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>
